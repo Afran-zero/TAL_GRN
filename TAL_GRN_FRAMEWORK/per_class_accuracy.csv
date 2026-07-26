@@ -1,0 +1,41 @@
+Class_Short,Class_Full,Per_Class_Accuracy
+Acute Cerebelli...,Acute Cerebellitis in HIV,0.8010204081632613
+Acute Unilatera...,Acute Unilateral Cerebellitis in HIV,0.08080808080808
+Adenomyosis in ...,Adenomyosis in Gravid Uterus,0.9999999999999937
+Balloon Cell Co...,Balloon Cell Cortical Dysplasia,0.9755244755244721
+Bilateral Osgoo...,Bilateral Osgood-Schlatter Disease with Chronic Inflammatory Arthritis,0.43181818181817855
+Bilateral Ulnar...,Bilateral Ulnar Impaction Syndrome,0.9075630252100765
+Carolis Disease,Carolis Disease,0.9795918367346904
+Congenital Toxo...,Congenital Toxoplasmosis,0.8914728682170474
+Congenital Vagi...,Congenital Vaginal Cyst,0.9459459459459375
+Dermatomyositis,Dermatomyositis,0.9827586206896467
+Fukuyama Muscul...,Fukuyama Muscular Dystrophy,0.36216216216216024
+Gamekeepers Thumb,Gamekeepers Thumb,0.9642857142857094
+Hallervorden-Sp...,Hallervorden-Spatz Disease (now called Pantothenate Kinase-Associated Neurodegeneration),0.7943925233644823
+Hepatocellular ...,Hepatocellular Carcinoma (HCC) and Dysplastic Nodules with Cirrhosis,0.9246231155778848
+Inferior Vena C...,Inferior Vena Cava (IVC) Leiomyosarcoma-20240916T165709Z-001,0.9722222222222169
+Japanese B Ence...,Japanese B Encephalitis or Epstein-Barr Encephalitis,0.8311688311688276
+Leighs Disease ...,Leighs Disease in Spinal Cord and Inferior Colliculi,0.8087431693989027
+Low Medial Inse...,Low Medial Insertion of Common Bile Duct with Pancreas Divisum-20240916T165825Z-001,0.9724137931034416
+Lumbosacral Ple...,Lumbosacral Plexitis,0.9416666666666589
+Magnetic Resona...,Magnetic Resonance (MR) Brain,0.5450236966824619
+Magnetic Resona...,Magnetic Resonance (MR) Spine,0.6853146853146805
+Moyamoya Diseas...,Moyamoya Disease with Intraventricular Hemorrhage,0.9655172413793048
+Myositis Ossifi...,Myositis Ossificans Progressiva,0.9386503067484605
+Neurofibromatos...,Neurofibromatosis Type 1 (NF1) with Optic Glioma and Intracranial Extension,0.8736842105263112
+Optic Glioma,Optic Glioma,0.9799999999999902
+Osmotic Demyeli...,Osmotic Demyelination Syndrome,0.9087452471482854
+Pachygyria with...,Pachygyria with Cerebellar Hypoplasia,0.9831932773109161
+Perisylvian Syn...,Perisylvian Syndrome,0.9427480916030497
+Pigmented Villo...,Pigmented Villonodular Synovitis (PVNS) of Ankle,0.9743589743589661
+Plexiform Neuro...,Plexiform Neurofibroma with Sphenoid Wing Absence,0.9431279620853036
+Rasmussens Ence...,Rasmussens Encephalitis,0.8373983739837331
+Retinoblastoma ...,Retinoblastoma with Intracranial Spread Along Cranial Nerve,0.7749999999999968
+Right Brachial ...,Right Brachial Plexitis,0.9171974522292935
+Sjögrens Syndrome,Sjögrens Syndrome,0.9999999999999953
+Sural Nerve Neu...,Sural Nerve Neurofibroma,0.9945945945945892
+Thoracic Outlet...,Thoracic Outlet Syndrome,0.9718309859154861
+Tuberous Sclerosis,Tuberous Sclerosis,0.664179104477607
+Two-Week Follow...,Two-Week Follow-Up with Spectroscopy,0.9020979020978959
+Typical Adrenol...,Typical Adrenoleukodystrophy,0.7596899224806143
+Walker-Warburg ...,Walker-Warburg Syndrome,0.9509202453987672
