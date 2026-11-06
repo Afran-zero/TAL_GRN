@@ -191,17 +191,22 @@ Through graph convolution, information from neighboring samples is combined to l
 
 The final graph representations are passed to a classification layer to predict one of the 40 classes.
 
-The classification objective is based on cross-entropy loss:
+To train the classification layer, I used the cross-entropy loss function. It measures the difference between the actual class labels and the probabilities predicted by the model.
+
+The cross-entropy loss is calculated as:
 
 $$
-\mathcal{L}*{CE} =*
-*-\frac{1}{N}*
-*\sum*{i=1}^{N}
-\sum\_{c=1}^{C}
-y\_{ic}\log(p\_{ic})
+\mathcal{L}_{CE} = -\frac{1}{N}\sum_{i=1}^{N}\sum_{c=1}^{C} y_{ic}\log(p_{ic})
 $$
 
-Here, $N$ represents the number of samples, $C$ represents the number of classes, $y\_{ic}$ is the true label, and $p\_{ic}$ is the predicted probability.
+Here:
+
+- $N$ represents the total number of samples.
+- $C$ represents the number of classes.
+- $y_{ic}$ represents the true label of sample $i$ for class $c$.
+- $p_{ic}$ represents the predicted probability of sample $i$ belonging to class $c$.
+
+The goal is to minimize the cross-entropy loss so that the predicted probabilities become closer to the actual class labels.
 
 ## Experimental Configuration
 
