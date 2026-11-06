@@ -1,166 +1,317 @@
-# TAL-GRN: Topology-Aware Learning Graph Representation Network for Long-Tailed Multi-Class Medical Image Classification
 
-**TAL-GRN** is a hybrid CNN–GNN framework designed to improve medical image classification under class imbalance. It combines pretrained CNN feature extraction with adaptive graph construction and graph-based message passing.
 
-Unlike conventional graph methods that use a fixed number of neighbors, TAL-GRN dynamically determines how many neighboring samples each image should connect to and learns how important each connection is. This allows the model to use relationships between images to improve classification, particularly for underrepresented classes.
+# TAL-GRN: Topology-Aware Learnable Graph Reweighting Network for Imbalanced Medical Image Classification
 
-## Key Features
+**Technologies:** Python, PyTorch, Torchvision, NumPy, Pandas, Scikit-learn
 
-- **Hybrid CNN–GNN architecture:** Combines ResNet-50 feature extraction with graph-based learning.
-- **Adaptive neighborhood construction:** Predicts a different neighborhood size for each image instead of using a fixed \(k\).
-- **Learnable edge weights:** Learns the importance of connections between image representations.
-- **Graph message passing:** Uses relationships between samples to improve their representations.
-- **Long-tailed classification:** Evaluates performance across both frequent and underrepresented classes.
-- **Extensive ablation studies:** Examines the contribution of adaptive neighborhoods, edge weights, and graph reasoning.
-- **Cross-dataset evaluation:** Tests the framework on different medical imaging datasets.
+## Overview
 
-## Model Architecture
+TAL-GRN is a graph-based deep learning framework designed for **imbalanced medical image classification**. It addresses the problem of unequal class distribution, where some medical conditions have many training images while others have significantly fewer.
 
-TAL-GRN consists of three main components:
+Traditional CNN models classify images independently, which can make them biased toward majority classes. TAL-GRN addresses this problem by allowing images within a mini-batch to exchange information through an adaptively constructed graph.
 
-### 1. CNN Feature Extraction
+Unlike conventional graph-based methods that use a fixed number of neighbors and predefined connections, TAL-GRN learns:
 
-A pretrained **ResNet-50** is used as the feature extractor. Its weights remain frozen during training, and each image is converted into a 2048-dimensional feature vector.
+- How many neighboring images each sample should connect to.
+- How important each connection is for classification.
+- How information should be propagated between related images.
 
-\[
-h_i = \operatorname{ResNet50}(x_i)
-\in \mathbb{R}^{2048}
-\]
+The framework uses a frozen ResNet-50 backbone for feature extraction and a topology-aware Graph Neural Network (GNN) for relational learning.
 
-These feature vectors represent the images and serve as the input to the graph-learning module.
+## Key Contributions
 
-### 2. Adaptive Graph Construction
+- Developed a **Topology-Aware Learnable Graph Reweighting Network (TAL-GRN)** for imbalanced medical image classification.
+- Designed an adaptive neighborhood module that determines the number of neighbors for each image.
+- Implemented a learnable edge-weight predictor to estimate the importance of graph connections.
+- Integrated a three-layer topology-aware GNN with residual connections for graph-based feature learning.
+- Conducted extensive comparisons with CNN backbones, traditional class-imbalance methods, and existing graph-based approaches.
+- Performed ablation studies to investigate the contribution of adaptive neighborhoods, learnable edge weights, and graph message passing.
+- Evaluated generalization on additional medical imaging datasets.
 
-This is the central component of TAL-GRN. Instead of connecting every image to a fixed number of neighbors, the model estimates a suitable neighborhood size for each image.
+## Architecture
 
-First, cosine similarity is calculated between image feature vectors:
+TAL-GRN consists of four main stages:
 
-\[
-S_{ij} =
-\frac{h_i}{\|h_i\|}
-\cdot
-\frac{h_j}{\|h_j\|}
-\]
+1. **Feature Extraction:** A pretrained and frozen ResNet-50 extracts a 2048-dimensional feature vector from each image.
+2. **Adaptive Graph Construction:** The model determines the number of neighbors for each image and predicts the importance of each candidate connection.
+3. **Graph Message Passing:** A three-layer topology-aware GNN propagates information between connected images.
+4. **Classification:** A linear classification head predicts the medical image category.
 
-Next, an Adaptive Neighborhood module predicts the number of neighbors:
+### Architecture Configuration
 
-\[
-k_i =
-\left\lfloor
-K_{\text{base}}+
-K_{\alpha}\cdot\sigma(a_i)
-\right\rfloor
-\]
+| Component | Configuration |
+|---|---|
+| Feature extractor | Frozen ResNet-50 |
+| Feature dimension | 2048 |
+| Adaptive neighborhood module | Two-layer MLP |
+| Edge-weight predictor | Three-layer MLP |
+| GNN layers | 3 |
+| GNN hidden dimension | 512 |
+| Base neighborhood size | 5 |
+| Adaptive neighborhood range | Approximately 5–15 |
+| Edge-pruning threshold | 0.3 |
+| Classification head | Linear layer |
+
+## Methodology
+
+### 1. Feature Extraction
+
+A pretrained ResNet-50 is used as the feature extraction backbone. Its final fully connected layer is removed, and its weights are frozen.
+
+Each input image is transformed into a feature vector:
+
+$$
+h_i = \operatorname{Backbone}(x_i)
+$$
 
 where:
 
-- \(K_{\text{base}}=5\)
-- \(K_{\alpha}=10\)
-- \(\sigma\) is the sigmoid function.
-- \(k_i\) determines how many similar images are selected as neighbors.
+- $x_i$ represents an input image.
+- $h_i$ represents its extracted feature vector.
+- $h_i \in \mathbb{R}^{2048}$.
 
-The resulting neighborhood size is approximately between 5 and 15.
+### 2. Adaptive Graph Construction
 
-The model then uses an Edge Weight Predictor to estimate the importance of each selected connection:
+Instead of connecting every image to a fixed number of neighbors, TAL-GRN dynamically determines the neighborhood size for each image.
 
-\[
+First, cosine similarity is calculated between image feature vectors:
+
+$$
+S_{ij} =
+\frac{h_i}{\|h_i\|_2}
+\cdot
+\frac{h_j}{\|h_j\|_2}
+$$
+
+The adaptive neighborhood module then predicts the number of neighbors:
+
+$$
+k_i =
+\left\lfloor
+K_{\text{base}} +
+K_{\alpha}\sigma(a_i)
+\right\rfloor
+$$
+
+where:
+
+$$
+a_i = \operatorname{MLP}_N(h_i)
+$$
+
+Here:
+
+- $K_{\text{base}} = 5$
+- $K_{\alpha} = 10$
+- $\sigma$ is the sigmoid function.
+- $k_i$ is the selected neighborhood size.
+
+This allows different images to use different amounts of relational information.
+
+### 3. Learnable Edge-Weight Prediction
+
+After selecting candidate neighbors, TAL-GRN predicts how important each connection is.
+
+The Edge Weight Predictor (EWP) uses both endpoint features and their cosine similarity:
+
+$$
 e_{ij} =
 \operatorname{softplus}
 \left(
 \operatorname{MLP}_E
 ([h_i;h_j;S_{ij}])
 \right)
-\]
+$$
 
-An edge-pruning threshold of \(\tau=0.3\) is used to remove weak connections.
+Connections with weights below the threshold are removed:
 
-### 3. Graph Representation Learning
+$$
+E =
+\left\{
+(i,j):
+j \in \operatorname{top-}k_i(S_i),
+\ e_{ij} > \tau
+\right\}
+$$
 
-The constructed graph is processed by a **3-layer Graph Neural Network (GNN)** with a hidden dimension of 512.
+where $\tau = 0.3$.
 
-Through message passing, each image representation receives information from its connected neighbors. The updated representations are then passed to the classification layer to predict the medical image class.
+Self-loops are also added to preserve each image's own features during message passing.
+
+The resulting weighted adjacency matrix is normalized:
+
+$$
+\hat{A} = D^{-1/2}AD^{-1/2}
+$$
+
+where $A$ is the weighted adjacency matrix and $D$ is its degree matrix.
+
+### 4. Graph Message Passing
+
+TAL-GRN uses three graph neural network layers to combine information from neighboring images.
+
+The message aggregation step is:
+
+$$
+m^{(\ell)} =
+\hat{A}W_m^{(\ell)}h^{(\ell)}
+$$
+
+The node update is:
+
+$$
+h_i^{(\ell+1)} =
+\operatorname{LayerNorm}
+\left(
+\operatorname{GELU}
+\left(
+W_u^{(\ell)}
+[h_i^{(\ell)};m_i^{(\ell)}]
+\right)
+\right)
++
+R^{(\ell)}(h_i^{(\ell)})
+$$
+
+The architecture combines graph-based message passing, nonlinear feature transformation, normalization, and residual connections.
+
+### 5. Classification
+
+The final graph representation is passed through a linear classification layer:
+
+$$
+\operatorname{logits}_i =
+W_ch_i^{(L)} + b_c
+$$
+
+The model is trained using standard categorical cross-entropy:
+
+$$
+\mathcal{L} =
+-\frac{1}{B}
+\sum_i
+\log
+\left(
+\frac{
+\exp(\operatorname{logits}_{i,y_i})
+}{
+\sum_c \exp(\operatorname{logits}_{i,c})
+}
+\right)
+$$
+
+TAL-GRN does not use class-weighted loss or oversampling. Its imbalance-handling strategy is based on adaptive graph construction and learnable edge weights.
 
 ## Dataset
 
-The primary benchmark is a brain MRI dataset containing:
+The primary experiment uses a **40-class brain MRI dataset** containing 34,192 images.
 
-| Property | Description |
+| Dataset property | Description |
 |---|---|
 | Total images | 34,192 |
 | Number of classes | 40 |
 | Minimum class size | 488 |
 | Maximum class size | 1,464 |
-| Class imbalance ratio | 3:1 |
+| Imbalance ratio | 3:1 |
+| Data splitting | Stratified train/validation/test |
 
-The dataset is divided into stratified training, validation, and test sets to preserve the class distribution.
+The dataset is divided into training, validation, and test sets while preserving the class distribution.
 
-### Additional Datasets
+### Data Preprocessing
 
-To evaluate generalization across different medical imaging domains, TAL-GRN was also tested on:
+- Images are resized to $256 \times 256$.
+- Random cropping is applied to obtain $224 \times 224$ images.
+- Random horizontal flipping and color jitter are used during training.
+- ImageNet mean and standard deviation are used for normalization.
+- Validation and test images are resized to $224 \times 224$ without random augmentation.
 
-- **BloodMNIST:** Peripheral blood cell classification.
-- **HAM10000:** Dermoscopic skin lesion classification.
-- **Pediatric Chest X-ray:** Normal and pneumonia classification.
+## Experimental Setup
 
-## Data Preprocessing
-
-The primary brain MRI dataset uses the following preprocessing pipeline:
-
-- ImageNet normalization.
-- Resize images to \(256\times256\).
-- Random crop to \(224\times224\) during training.
-- Random horizontal flipping.
-- Color jitter with brightness, contrast, and saturation of 0.3, and hue of 0.1.
-- Validation and test images are resized to \(224\times224\) without augmentation.
-
-## Training Configuration
+All experiments use a shared training configuration:
 
 | Parameter | Value |
 |---|---|
-| CNN backbone | Frozen ResNet-50 |
-| Feature dimension | 2048 |
-| GNN layers | 3 |
-| GNN hidden dimension | 512 |
-| Base neighborhood size | 5 |
-| Adaptive neighborhood range | Approximately 5–15 |
-| Edge-pruning threshold | 0.3 |
-| Optimizer | AdamW |
-| Learning rate | 0.001 |
-| Weight decay | 0.0001 |
-| Batch size | 64 |
 | Epochs | 50 |
+| Batch size | 64 |
+| Learning rate | $1 \times 10^{-3}$ |
+| Weight decay | $1 \times 10^{-4}$ |
+| Optimizer | AdamW |
 | Learning-rate scheduler | Cosine Annealing |
 | Gradient clipping | 1.0 |
 | Training precision | Automatic Mixed Precision (AMP) |
+| GPU environment | 2 × NVIDIA T4 |
 
-The model uses standard cross-entropy loss without oversampling, synthetic data generation, or class-based loss reweighting.
+The model checkpoint with the highest validation macro-F1 score is selected for final test evaluation.
 
-## Experimental Results
+## Comparative Experiments
 
-### Main Results on Brain MRI
+Experiments are organized into three main groups.
 
-TAL-GRN achieved the following results on the primary 40-class brain MRI benchmark:
+**1. CNN Baselines**
 
-| Metric | TAL-GRN |
+Five pretrained CNN architectures are evaluated using ordinary cross-entropy loss:
+
+- ResNet-50
+- EfficientNet-B2
+- DenseNet-121
+- MobileViT-XXS
+- ConvNeXt-T
+
+**2. Traditional Class-Imbalance Methods**
+
+Different loss-based approaches are compared using the same ResNet-50 backbone:
+
+- Cross-Entropy Loss
+- Focal Loss
+- Class-Balanced Loss
+- Logit Adjustment
+- LDAM-DRW
+
+**3. Graph-Based Methods**
+
+TAL-GRN is compared with:
+
+- GCN
+- GraphSAGE
+- GraphSMOTE
+- TAM
+- ReNode
+
+The graph-based baselines are adapted to the same mini-batch training setting to make the comparisons more consistent.
+
+## Ablation Studies
+
+Ablation experiments investigate how individual components contribute to the overall performance.
+
+| Experiment | Purpose |
+|---|---|
+| Full TAL-GRN | Complete proposed architecture |
+| Fixed-K Graph | Replaces adaptive neighborhood sizing with a fixed $k=20$ |
+| Without Edge Weights | Removes learnable edge weighting and uses uniform weights |
+| Without Graph Module | Removes graph construction and message passing, replacing them with an MLP |
+
+These experiments help determine the contribution of adaptive neighborhood selection, learnable edge weights, and graph-based relational learning.
+
+## Results
+
+### Main Brain MRI Dataset
+
+The proposed TAL-GRN achieved the following results in the reported main experiment:
+
+| Evaluation Metric | Result |
 |---|---:|
-| Accuracy | **86.12%** |
-| Macro Precision | 0.8506 |
-| Macro Recall | 0.8520 |
+| Test Accuracy | **86.12%** |
+| Balanced Accuracy | 85.20% |
+| Macro Precision | 85.06% |
+| Macro Recall | 85.20% |
 | Macro F1-score | **0.8472** |
 | Weighted F1-score | 0.8558 |
-| ROC-AUC (OvR) | 0.9968 |
 | MCC | 0.8575 |
-
-The model also showed stable performance across five random seeds:
-
-- Mean accuracy: **85.89% ± 0.39%**
-- Mean macro F1-score: **0.8443 ± 0.0049**
+| ROC-AUC | 0.9968 |
 
 ### Comparison with Graph-Based Methods
 
-TAL-GRN was compared with several graph-based learning methods using a shared experimental setup.
-
-| Method | Accuracy |
+| Method | Test Accuracy |
 |---|---:|
 | TAL-GRN | **86.12%** |
 | GCN | 83.20% |
@@ -169,47 +320,58 @@ TAL-GRN was compared with several graph-based learning methods using a shared ex
 | TAM | 82.60% |
 | ReNode | 82.07% |
 
-These comparisons show that adaptive graph construction and learnable edge weighting improve performance over the evaluated fixed-graph approaches.
+TAL-GRN achieved the highest accuracy among the evaluated graph-based methods.
 
-### Ablation Studies
+### Ablation Results
 
-Extensive ablation experiments were conducted to understand the contribution of individual components.
+The complete TAL-GRN model achieved 86.12% accuracy and a 0.8472 macro F1-score.
 
-The experiments examined:
+Removing the graph module resulted in a decrease to:
 
-- **Adaptive neighborhood size:** Compared adaptive neighborhood construction with fixed-\(k\) graph construction.
-- **Learnable edge weights:** Investigated the contribution of learning connection importance.
-- **Graph module:** Examined the effect of removing graph construction and message passing.
-- **Backbone comparison:** Compared different CNN feature extractors.
-- **Class imbalance methods:** Evaluated traditional loss-based approaches.
-- **Graph-based alternatives:** Compared TAL-GRN with GCN, GraphSMOTE, GraphSAGE, TAM, and ReNode.
+- Accuracy: 78.20%
+- Macro F1-score: 0.7668
 
-Selected ablation results:
+This highlights the contribution of relational graph learning to the classification performance.
 
-| Configuration | Accuracy | Macro F1 |
+### Robustness Across Random Seeds
+
+The model was also evaluated using five random seeds.
+
+| Metric | Mean Result |
+|---|---:|
+| Accuracy | 85.89% |
+| Accuracy Standard Deviation | 0.39% |
+| Macro F1-score | 0.8443 |
+| Macro F1 Standard Deviation | 0.0049 |
+| ROC-AUC | 0.9968 |
+| MCC | Approximately 0.8552 |
+
+The relatively small standard deviations indicate consistent performance across the tested random seeds.
+
+## Generalization on Additional Datasets
+
+TAL-GRN was additionally evaluated on three medical imaging benchmarks.
+
+| Dataset | TAL-GRN Accuracy | Baseline Accuracy |
 |---|---:|---:|
-| Full TAL-GRN | **86.12%** | **0.8472** |
-| Fixed neighborhood | 85.22% | — |
-| Without learnable edge weights | 83.14% | — |
-| Without graph module | 78.20% | 0.7668 |
+| BloodMNIST | 80.62% | 75.53% |
+| Skin Cancer (HAM10000) | 71.55% | 66.34% |
+| Chest X-ray | 93.52% | 91.47% |
 
-The results highlight the importance of adaptive graph construction, learnable edge weights, and relational message passing.
+These experiments investigate whether adaptive graph learning can also improve classification across different medical imaging modalities and class distributions.
 
-## Generalization Results
+## Evaluation Metrics
 
-TAL-GRN was also evaluated on three additional medical imaging datasets.
+The following metrics are used to evaluate classification performance:
 
-| Dataset | Baseline Accuracy | TAL-GRN Accuracy |
-|---|---:|---:|
-| BloodMNIST | 75.53% | **80.62%** |
-| HAM10000 (Skin Cancer) | 66.34% | **71.55%** |
-| Pediatric Chest X-ray | 91.47% | **93.52%** |
-
-These experiments demonstrate improvements over the frozen ResNet-50 baseline across different medical imaging domains.
-
-## Interpretability
-
-Grad-CAM was applied to correctly classified representative images from each class to visualize the image regions contributing to the CNN's predictions. This provides an additional way to inspect whether the model focuses on relevant image regions.
+- **Accuracy:** Overall proportion of correctly classified images.
+- **Balanced Accuracy:** Average recall across classes, giving equal importance to each class.
+- **Macro Precision:** Average precision across all classes.
+- **Macro Recall:** Average recall across all classes.
+- **Macro F1-score:** Average F1-score across classes, treating every class equally.
+- **Weighted F1-score:** F1-score averaged according to class frequency.
+- **MCC:** Correlation-based metric that considers the agreement between actual and predicted labels.
+- **ROC-AUC:** Measures the model's ability to distinguish between classes.
 
 ## Technologies Used
 
@@ -219,22 +381,16 @@ Grad-CAM was applied to correctly classified representative images from each cla
 - NumPy
 - Pandas
 - Scikit-learn
-- Matplotlib
-- Seaborn
+- CUDA
+- Automatic Mixed Precision (AMP)
 
 ## Research Objective
 
-The main objective of TAL-GRN is to investigate whether adaptive graph construction and learnable edge weighting can improve long-tailed medical image classification without relying on traditional data-level or loss-level imbalance handling.
+The main objective of TAL-GRN is to investigate whether **learning the graph structure itself** can improve imbalanced medical image classification.
 
-The experimental results suggest that learning relationships between image samples, rather than treating every image independently or relying on a fixed graph, can improve classification performance across multiple medical imaging datasets.
-
-## Future Work
-
-- Evaluate additional CNN backbones and graph architectures.
-- Investigate more adaptive graph construction strategies.
-- Extend evaluation to additional medical imaging datasets.
-- Further study graph connectivity and class-wise performance.
+Instead of relying only on loss reweighting or a fixed neighborhood structure, TAL-GRN learns both the number of neighbors and the importance of their connections. Through adaptive graph construction and topology-aware message passing, the framework aims to use relationships between medical images to improve classification, particularly when class distributions are unequal.
 
 ---
 
-**Note:** TAL-GRN is a research framework. The reported results correspond to the experimental configurations and datasets described above.
+**Note:** The reported results represent the experiments described in this project. They should not be interpreted as clinical validation or as evidence of deployment readiness.
+
